@@ -17,7 +17,7 @@ dependencyResolutionManagement {
 ### Step 2. Add the dependency
 ```groovy
 dependencies {
-     implementation ("com.github.Radzdevteam:Security:1.0")
+     implementation ("com.github.Radzdevteam:Security:Tag")
 }
 
    ```
