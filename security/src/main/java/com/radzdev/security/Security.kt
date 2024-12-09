@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.content.pm.Signature
 import android.os.Build
+import android.util.Log
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 import java.util.Locale
@@ -22,7 +23,10 @@ class Security(private val context: Context) {
 
     fun check() {
         if (shouldCheck && currentSignature != sha1Hash) {
+            Log.d("Security", "Signature mismatch detected!")
             compromised()
+        } else {
+            Log.d("Security", "Signature matched.")
         }
     }
 
@@ -33,9 +37,43 @@ class Security(private val context: Context) {
         }
 
     private fun compromised() {
-        // Show a toast or log the event if needed
+        // Log the compromised event and exit
+        Log.d("Security", "App compromised!")
         (context as Activity).finishAffinity()
         System.exit(0)
+    }
+
+    fun checkAppIntegrity(appNameBytes: ByteArray, packageNameBytes: ByteArray) {
+        val appName = String(appNameBytes)
+        val packageName = String(packageNameBytes)
+
+        // Compare app name and package name, and log results
+        val appNameMatches = matchesAscii(appName, getApplicationLabel())
+        val packageNameMatches = matchesAscii(packageName, context.packageName)
+
+        Log.d("Security", "App Name match: $appNameMatches")
+        Log.d("Security", "Package Name match: $packageNameMatches")
+
+        if (!appNameMatches || !packageNameMatches) {
+            Log.d("Security", "Integrity check failed.")
+            compromised()
+        } else {
+            Log.d("Security", "Integrity check passed.")
+        }
+    }
+
+    private fun matchesAscii(expected: String, actual: String): Boolean {
+        return expected == actual
+    }
+
+    private fun getApplicationLabel(): String {
+        return context.packageManager.getApplicationLabel(context.applicationInfo).toString()
+    }
+
+    private fun exitApp() {
+        // Log app exit event and remove task
+        Log.d("Security", "Exiting app...")
+        (context as Activity).finishAndRemoveTask()
     }
 
     private object Base64Utils {
