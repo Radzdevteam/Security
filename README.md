@@ -1,5 +1,5 @@
 # Radz App Security
-[![](https://jitpack.io/v/Radzdevteam/Security.svg)](https://jitpack.io/#Radzdevteam/Security)
+
 
 ## How to Include
 ### Step 1. Add the repository to your project settings.gradle:
@@ -15,6 +15,7 @@ dependencyResolutionManagement {
    ```
 
 ### Step 2. Add the dependency
+[![](https://jitpack.io/v/Radzdevteam/Security.svg)](https://jitpack.io/#Radzdevteam/Security)
 ```groovy
 dependencies {
      implementation ("com.github.Radzdevteam:Security:Tag")
