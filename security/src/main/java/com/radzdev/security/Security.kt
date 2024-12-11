@@ -1,53 +1,29 @@
-@file:Suppress("DEPRECATION")
-
 package com.radzdev.security
 
-import android.app.Activity
+import android.app.AlertDialog
 import android.content.Context
-import android.content.pm.PackageManager
-import android.content.pm.Signature
-import android.os.Build
+import android.content.Intent
+import android.net.Uri
 import android.util.Log
-import java.security.MessageDigest
-import java.security.NoSuchAlgorithmException
-import java.util.Locale
+import okhttp3.*
+import org.json.JSONObject
+import java.io.IOException
 
 class Security(private val context: Context) {
+
     private var sha1Hash: String? = null
     private var shouldCheck = false
+    private val jsonUrl = "https://raw.githubusercontent.com/Radzdevteam/SecurityPackageChecker/refs/heads/main/checker"
 
     fun setSHA1(hash: String?) {
         sha1Hash = hash
         shouldCheck = true
     }
 
-    fun check() {
-        if (shouldCheck && currentSignature != sha1Hash) {
-            Log.d("Security", "Signature mismatch detected!")
-            compromised()
-        } else {
-            Log.d("Security", "Signature matched.")
-        }
-    }
-
-    private val currentSignature: String
-        get() {
-            val signature = AppInfoUtils.getSignature(context, context.packageName, "SHA1")
-            return Base64Utils.formatSignature(signature?.lowercase(Locale.getDefault()))
-        }
-
-    private fun compromised() {
-        // Log the compromised event and exit
-        Log.d("Security", "App compromised!")
-        (context as Activity).finishAffinity()
-        System.exit(0)
-    }
-
     fun checkAppIntegrity(appNameBytes: ByteArray, packageNameBytes: ByteArray) {
         val appName = String(appNameBytes)
         val packageName = String(packageNameBytes)
 
-        // Compare app name and package name, and log results
         val appNameMatches = matchesAscii(appName, getApplicationLabel())
         val packageNameMatches = matchesAscii(packageName, context.packageName)
 
@@ -62,6 +38,63 @@ class Security(private val context: Context) {
         }
     }
 
+    fun check() {
+        val packageName = context.packageName
+
+        val client = OkHttpClient()
+        val request = Request.Builder()
+            .url(jsonUrl)
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                Log.e("Security", "Failed to fetch JSON: ${e.message}")
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                response.body?.string()?.let { responseBody ->
+                    val isRegistered = isPackageRegistered(responseBody, packageName)
+                    (context as? android.app.Activity)?.runOnUiThread {
+                        if (!isRegistered) {
+                            showUnregisteredDialog()
+                        } else {
+                            Log.d("Security", "Package name is registered.")
+                        }
+                    }
+                }
+            }
+        })
+    }
+
+    private fun isPackageRegistered(jsonData: String, packageName: String): Boolean {
+        return try {
+            val jsonObject = JSONObject(jsonData)
+            val registeredPackages = jsonObject.getJSONArray("registered_packages")
+            for (i in 0 until registeredPackages.length()) {
+                if (registeredPackages.getString(i) == packageName) {
+                    return true
+                }
+            }
+            false
+        } catch (e: Exception) {
+            Log.e("Security", "Error parsing JSON: ${e.message}")
+            false
+        }
+    }
+
+    private fun showUnregisteredDialog() {
+        val builder = AlertDialog.Builder(context)
+            .setTitle("App Not Registered")
+            .setMessage("This app is either not registered on Radz App Updater or has been terminated. Contact the developer on Facebook at Mhuradz Alegre.")
+            .setCancelable(false)
+
+        val dialog = builder.create()
+        dialog.setCancelable(false)
+        dialog.setCanceledOnTouchOutside(false)
+        dialog.show()
+    }
+
+
     private fun matchesAscii(expected: String, actual: String): Boolean {
         return expected == actual
     }
@@ -70,50 +103,9 @@ class Security(private val context: Context) {
         return context.packageManager.getApplicationLabel(context.applicationInfo).toString()
     }
 
-    private fun exitApp() {
-        // Log app exit event and remove task
-        Log.d("Security", "Exiting app...")
-        (context as Activity).finishAndRemoveTask()
-    }
-
-    private object Base64Utils {
-        fun formatSignature(signature: String?): String {
-            if (signature.isNullOrEmpty()) return signature ?: ""
-            return signature.chunked(2).joinToString(":")
-        }
-    }
-
-    private object AppInfoUtils {
-        fun getSignature(context: Context, packageName: String, algorithm: String): String? {
-            val signatures = getSignatures(context, packageName)
-            return if (signatures.isNotEmpty()) {
-                getSignatureString(signatures[0], algorithm)
-            } else null
-        }
-
-        private fun getSignatures(context: Context, packageName: String): Array<Signature> {
-            return try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    val packageInfo = context.packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
-                    packageInfo.signingInfo.apkContentsSigners
-                } else {
-                    val packageInfo = context.packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
-                    packageInfo.signatures
-                }
-            } catch (e: PackageManager.NameNotFoundException) {
-                e.printStackTrace()
-                emptyArray()
-            }
-        }
-
-        private fun getSignatureString(signature: Signature, algorithm: String): String {
-            return try {
-                val digest = MessageDigest.getInstance(algorithm).digest(signature.toByteArray())
-                digest.joinToString("") { String.format("%02x", it) }
-            } catch (e: NoSuchAlgorithmException) {
-                e.printStackTrace()
-                "error!"
-            }
-        }
+    private fun compromised() {
+        Log.d("Security", "App compromised!")
+        (context as? android.app.Activity)?.finishAffinity()
+        System.exit(0)
     }
 }
