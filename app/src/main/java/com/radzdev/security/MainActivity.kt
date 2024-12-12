@@ -2,7 +2,6 @@ package com.radzdev.security
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import com.google.firebase.FirebaseApp
 
 class MainActivity : ComponentActivity() {
 

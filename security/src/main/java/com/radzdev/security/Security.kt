@@ -3,7 +3,7 @@ package com.radzdev.security
 import android.app.AlertDialog
 import android.content.Context
 import android.util.Log
-import com.google.firebase.database.*
+import com.google.firebase.database.FirebaseDatabase
 
 class Security(private val context: Context) {
 
@@ -80,7 +80,7 @@ class Security(private val context: Context) {
     private fun showUnregisteredDialog() {
         val builder = AlertDialog.Builder(context)
             .setTitle("Unauthorized Application Detected")
-            .setMessage("This application is not authorized to execute as it has not been registered with Radz App Updater. For further assistance, please contact the developer via Facebook at Mhuradz Alegre.")
+            .setMessage("This application is not authorized to execute as it has not been registered with Radz App Security. For further assistance, please contact the developer via Facebook at Mhuradz Alegre.")
             .setCancelable(false)
 
         val dialog = builder.create()
