@@ -27,7 +27,7 @@ dependencies {
 
 In your `MainActivity`, add the following code:
 ```kotlin
-  class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,14 +40,12 @@ In your `MainActivity`, add the following code:
         // Construct the byte arrays for APP_NAME and PACKAGE_NAME
         val appNameBytes = byteArrayOf(115, 101, 99, 117, 114, 105, 116, 121)
         val packageNameBytes = byteArrayOf(
-                99, 111, 109, 46, 114, 97, 100, 122, 100, 101, 118, 46, 115, 101, 99, 117, 114, 105, 116, 121
+            99, 111, 109, 46, 114, 97, 100, 122, 100, 101, 118, 46, 115, 101, 99, 117, 114, 105, 116, 121
         )
 
         // Pass the byte arrays to checkAppIntegrity
         cs.checkAppIntegrity(appNameBytes, packageNameBytes)
 
-        // Check if the signature matches
-        cs.check()
     }
 }
    ```
