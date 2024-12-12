@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.jetbrainsKotlinAndroid)
     id("maven-publish")
+    alias(libs.plugins.googleGmsGoogleServices)
 }
 
 android {
@@ -48,5 +49,5 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
-    implementation("com.squareup.okhttp3:okhttp:4.10.0")
+
 }
