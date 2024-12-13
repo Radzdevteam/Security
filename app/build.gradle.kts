@@ -61,6 +61,4 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(project(":security"))
-    implementation(libs.firebase.database)
-    implementation(libs.firebase.core)
 }

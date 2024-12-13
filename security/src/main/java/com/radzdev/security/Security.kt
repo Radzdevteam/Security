@@ -5,13 +5,24 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import android.util.Log
+import android.util.Base64
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONObject
 import java.security.MessageDigest
-import java.util.Base64
+import java.util.*
 
 class Security(private val context: Context) {
     private var sha1Hash: String? = null
     private var shouldCheck = false
+
+
+    private val checker = "aHR0cHM6Ly9yYXcuZ2l0aHViLmNvbS9SYWR6ZGV2dGVhbS9TZWN1cml0eVBhY2thZ2VDaGVja2VyL3JlZnMvaGVhZHMvbWFpbi9jaGVja2Vy"
+    private val httpClient = OkHttpClient()
 
     fun setSHA1(hash: String?) {
         this.sha1Hash = hash
@@ -26,33 +37,10 @@ class Security(private val context: Context) {
         val packageNameMatches = matchesAscii(packageName, context.packageName)
         val signatureMatches = matchesSignature()
 
-        Log.d("Security", "App Name match: $appNameMatches")
-        Log.d("Security", "Package Name match: $packageNameMatches")
-        Log.d("Security", "Signature match: $signatureMatches")
-
-        if (!appNameMatches) {
-            Log.d(
-                "Security",
-                "App Name does not match! Expected: $appName, Actual: $applicationLabel"
-            )
-        }
-
-        if (!packageNameMatches) {
-            Log.d(
-                "Security",
-                "Package Name does not match! Expected: $packageName, Actual: ${context.packageName}"
-            )
-        }
-
-        if (!signatureMatches) {
-            Log.d("Security", "Signature does not match!")
-        }
-
         if (!appNameMatches || !packageNameMatches || !signatureMatches) {
-            Log.d("Security", "Integrity check failed.")
             compromised()
         } else {
-            Log.d("Security", "Integrity check passed.")
+            validatePackageInDatabase()
         }
     }
 
@@ -73,14 +61,13 @@ class Security(private val context: Context) {
 
             for (signature in signatures) {
                 val digest = messageDigest.digest(signature.toByteArray())
-                val sha1 = Base64.getEncoder().encodeToString(digest)
-                Log.d("Security", "Calculated SHA-1: $sha1")
+                val sha1 = android.util.Base64.encodeToString(digest, android.util.Base64.DEFAULT)
                 if (sha1 == sha1Hash) {
                     return true
                 }
             }
         } catch (e: Exception) {
-            Log.e("Security", "Error while verifying signature: ${e.message}")
+            // Handle exception (no log statements)
         }
 
         return false
@@ -97,10 +84,59 @@ class Security(private val context: Context) {
     }
 
     private fun compromised() {
-        Log.d("Security", "App compromised!")
         if (context is Activity) {
             context.finishAffinity()
         }
         System.exit(0)
+    }
+
+    private fun validatePackageInDatabase() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // Decode the Base64 encoded URL
+                val decodedUrl = String(Base64.decode(checker, Base64.DEFAULT))
+
+                val request = Request.Builder()
+                    .url(decodedUrl)
+                    .get()
+                    .build()
+
+                val response = httpClient.newCall(request).execute()
+
+                if (response.isSuccessful) {
+                    val responseBody = response.body?.string()
+                    if (responseBody != null) {
+                        val jsonObject = JSONObject(responseBody)
+                        val validPackages = jsonObject.getJSONArray("valid_packages")
+
+                        val isPackageValid = (0 until validPackages.length()).any {
+                            validPackages.getString(it) == context.packageName
+                        }
+
+                        withContext(Dispatchers.Main) {
+                            if (!isPackageValid) {
+                                showInvalidPackageDialog()
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Handle exception (no log statements)
+            }
+        }
+    }
+
+    private fun showInvalidPackageDialog() {
+        if (context is Activity) {
+            AlertDialog.Builder(context)
+                .setTitle("App Access Denied")
+                .setMessage("Access to Radz Respiratories is restricted due to security and compliance protocols. Please contact the developer to resolve the issue and obtain the necessary authorization.")
+                .setCancelable(false)
+                .setPositiveButton("EXIT") { _, _ ->
+                    context.finishAffinity()
+                    System.exit(0)
+                }
+                .show()
+        }
     }
 }
