@@ -3,7 +3,7 @@
     package="com.radzdev.security">
 
     <!-- Add the INTERNET permission -->
-    <uses-permission android:name="android.permission.INTERNET" />
+
 
     <application
         android:allowBackup="true"
